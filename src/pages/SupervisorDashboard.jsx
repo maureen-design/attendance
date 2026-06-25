@@ -14,7 +14,7 @@ import {
   getPresentRecords,
   getPaginatedAttendanceRecords,
 } from '../services/attendanceService';
-import { changeAdminPassword } from '../services/authService';
+import { changeAdminPassword, sendSupervisorPasswordReset } from '../services/authService';
 import { getCurrentMonthYear, getTodayDateString } from '../utils/dateUtils';
 import { useChangePassword } from '../layouts/MainLayout';
 import { getSessionSupervisorName, getSessionSupervisorDepartment } from '../services/storageService';
@@ -87,6 +87,9 @@ export default function SupervisorDashboard() {
   }, [tableRows, departmentFilter]);
 
   const handleChangePassword = async (oldPassword, newPassword) => {
+    // With Firebase Auth, password changes go through email reset.
+    // Keeping this wired to the legacy modal for now — it will return
+    // an informative message.
     return await changeAdminPassword(oldPassword, newPassword);
   };
 

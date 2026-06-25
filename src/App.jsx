@@ -9,6 +9,7 @@ import LoginSelection from './pages/LoginSelection';
 import AdminSetup from './pages/AdminSetup';
 import AttendeeProfile from './pages/AttendeeProfile';
 import SupervisorDashboard from './pages/SupervisorDashboard';
+import SupervisorAuth from './pages/SupervisorAuth';
 import Unauthorized from './pages/Unauthorized';
 import { initializeSampleData } from './services/seedService';
 import './styles/global.css';
@@ -46,6 +47,8 @@ export default function App() {
             element={<Navigate to="/attachee/attendance" replace />}
           />
         </Route>
+
+        <Route path="/supervisor/login" element={<SupervisorAuth />} />
 
         <Route
           element={<MainLayout requiredRole={ROLES.SUPERVISOR} />}
