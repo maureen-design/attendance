@@ -1208,3 +1208,296 @@
   margin-bottom: 1.75rem;
   line-height: 1.6;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Not Attending — Status Badge & Table Row
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-badge--not-attending {
+  background: #fee2e2;
+  color: #991b1b;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.row--not-attending td {
+  background: rgba(185, 28, 28, 0.04);
+  color: var(--color-text-muted);
+}
+
+/* Inline toggle for reason in table cell */
+.not-attending-note {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.not-attending-note__toggle {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.35rem;
+}
+
+.not-attending-note__body {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  max-width: 260px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Not Attending Dialog
+   ═══════════════════════════════════════════════════════════════ */
+
+.not-attending-dialog {
+  max-width: 480px;
+}
+
+.not-attending-dialog__hint {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.attendance-textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-input-text);
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.attendance-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.attendance-textarea.error {
+  border-color: var(--color-danger);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Absent / Not Attending button variant
+   ═══════════════════════════════════════════════════════════════ */
+
+.btn--absent {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn--absent:hover:not(:disabled) {
+  background: #9b1c1c;
+}
+
+.btn--absent:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Attendance Action Buttons — distinct layout
+   ═══════════════════════════════════════════════════════════════ */
+
+.attendance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.attendance-actions__btn {
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Attendance Lookup Card
+   ═══════════════════════════════════════════════════════════════ */
+
+.attendance-lookup-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Employee Badge — with avatar initial
+   ═══════════════════════════════════════════════════════════════ */
+
+.employee-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}
+
+.employee-badge__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Attendance Status Card (inline grid items)
+   ═══════════════════════════════════════════════════════════════ */
+
+.attendance-status__note {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  background: rgba(185, 28, 28, 0.06);
+  border-left: 3px solid var(--color-danger);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.attendance-status-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.attendance-status-card__label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.attendance-status-card__value {
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.attendance-status-card--present .attendance-status-card__value { color: var(--color-success); }
+.attendance-status-card--absent  .attendance-status-card__value { color: var(--color-danger); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Profile Page — avatar, chart legend, empty state
+   ═══════════════════════════════════════════════════════════════ */
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.profile-header__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.legend-dot--present { background: #16a34a; }
+.legend-dot--late    { background: #f59e0b; }
+.legend-dot--absent  { background: #b91c1c; }
+
+.profile-empty {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  padding: 1.5rem 0;
+}
+
+/* Absence detail inside profile history table */
+.absence-detail__toggle {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.3rem;
+  display: block;
+}
+
+.absence-detail__note {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: 0.3rem;
+  max-width: 320px;
+}
+
+/* Absent pill in analytics */
+.punctuality-pill--absent {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* btn--secondary fallback (used in ChangePasswordModal) */
+.btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-bg);
+}
