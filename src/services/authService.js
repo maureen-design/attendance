@@ -119,12 +119,12 @@ export async function setAdminPassword() { return { success: true }; }
 export async function clearAdminData() { clearAdminAuth(); return { success: true }; }
 
 /** @deprecated Use loginSupervisor instead */
-export async function verifySupervisorCredentials(name, password) {
+export async function verifySupervisorCredentials() {
   return { success: false, error: 'Use the new supervisor login page.' };
 }
 
 /** @deprecated */
-export async function changeAdminPassword(oldPassword, newPassword) {
+export async function changeAdminPassword() {
   return { success: false, error: 'Use Firebase password reset instead.' };
 }
 
@@ -152,7 +152,6 @@ function _friendlyAuthError(code) {
     case 'auth/configuration-not-found':
       return 'Firebase Authentication is not configured correctly. Check your Firebase project settings.';
     default:
-      // Always include the raw code so it's diagnosable
       return `Authentication failed (${code ?? 'unknown'}). Please try again.`;
   }
 }
