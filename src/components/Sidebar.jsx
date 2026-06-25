@@ -6,6 +6,7 @@ import {
   clearSessionSupervisorName,
   clearSessionSupervisorDepartment,
 } from '../services/storageService';
+import { logoutSupervisor, clearAdminAuth } from '../services/authService';
 
 const employeeLinks = [
   { to: '/attachee/attendance', label: 'Attendance', icon: '⏱' },
@@ -20,11 +21,17 @@ export default function Sidebar({ role, open, onToggle, onClose, onChangePasswor
   const navigate = useNavigate();
   const links = role === ROLES.SUPERVISOR ? supervisorLinks : employeeLinks;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     clearSessionRole();
     clearSessionPhone();
     clearSessionSupervisorName();
     clearSessionSupervisorDepartment();
+    // Sign out from Firebase Auth if supervisor
+    if (role === ROLES.SUPERVISOR) {
+      await logoutSupervisor();
+    } else {
+      clearAdminAuth();
+    }
     navigate('/');
     onClose?.();
   };
