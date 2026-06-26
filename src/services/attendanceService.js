@@ -1,12 +1,30 @@
-import { ATTENDANCE_STATUS, DEFAULT_CUTOFF_TIME } from '../data/constants';
-import { formatTime, getTodayDateString, isSameMonth, parseTimeToMinutes, getCurrentMonthYear } from '../utils/dateUtils';
-import { getEmployeeName, getAllEmployees } from './employeeService';
-import { logAuditEvent } from './auditService';
-import { handleError, withErrorHandling } from '../utils/errorHandler';
-import { db } from '../firebase';
-import { collection, doc, getDoc, getDocs, query, where, setDoc, addDoc, deleteDoc, onSnapshot, orderBy } from 'firebase/firestore';
+import { ATTENDANCE_STATUS, DEFAULT_CUTOFF_TIME } from "../data/constants";
+import {
+  formatTime,
+  getTodayDateString,
+  isSameMonth,
+  parseTimeToMinutes,
+  getCurrentMonthYear,
+} from "../utils/dateUtils";
+import { getEmployeeName, getAllEmployees } from "./employeeService";
+import { logAuditEvent } from "./auditService";
+import { handleError, withErrorHandling } from "../utils/errorHandler";
+import { db } from "../firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  setDoc,
+  addDoc,
+  deleteDoc,
+  onSnapshot,
+  orderBy,
+} from "firebase/firestore";
 
-const ATTENDANCE_COLLECTION = 'attendance';
+const ATTENDANCE_COLLECTION = "attendance";
 
 /**
  * Classify an employee's punctuality based on their check-in time and a cutoff.
@@ -16,11 +34,11 @@ const ATTENDANCE_COLLECTION = 'attendance';
  * @returns {"Absent"|"On Time"|"Late"}
  */
 export function classifyPunctuality(checkInTime, cutoffTime) {
-  if (!checkInTime) return 'Absent';
+  if (!checkInTime) return "Absent";
   const resolvedCutoff = cutoffTime || DEFAULT_CUTOFF_TIME;
   const checkInMinutes = parseTimeToMinutes(checkInTime);
   const cutoffMinutes = parseTimeToMinutes(resolvedCutoff);
-  return checkInMinutes <= cutoffMinutes ? 'On Time' : 'Late';
+  return checkInMinutes <= cutoffMinutes ? "On Time" : "Late";
 }
 
 /**
@@ -33,10 +51,10 @@ export async function getAttendanceByPhone(phone) {
   try {
     const q = query(
       collection(db, ATTENDANCE_COLLECTION),
-      where('phone', '==', phone)
+      where("phone", "==", phone),
     );
     const snap = await getDocs(q);
-    const records = snap.docs.map(d => d.data());
+    const records = snap.docs.map((d) => d.data());
     return records.sort((a, b) => b.date.localeCompare(a.date));
   } catch (error) {
     throw handleError(error);
@@ -46,16 +64,23 @@ export async function getAttendanceByPhone(phone) {
 // Migration function to move localStorage data to Firestore
 export async function migrateLocalStorageToFirestore() {
   try {
-    const localStorageData = localStorage.getItem('at_attendance');
-    if (!localStorageData) return { success: false, message: 'No localStorage data found' };
-    
+    const localStorageData = localStorage.getItem("at_attendance");
+    if (!localStorageData)
+      return { success: false, message: "No localStorage data found" };
+
     const records = JSON.parse(localStorageData);
-    console.log(`Found ${records.length} records in localStorage, migrating to Firestore...`);
-    
+    console.log(
+      `Found ${records.length} records in localStorage, migrating to Firestore...`,
+    );
+
     let migrated = 0;
     for (const record of records) {
       if (record.checkIn) {
-        const docRef = doc(db, ATTENDANCE_COLLECTION, `${record.phone}_${record.date}`);
+        const docRef = doc(
+          db,
+          ATTENDANCE_COLLECTION,
+          `${record.phone}_${record.date}`,
+        );
         await setDoc(docRef, {
           phone: record.phone,
           date: record.date,
@@ -67,21 +92,29 @@ export async function migrateLocalStorageToFirestore() {
         migrated++;
       }
     }
-    
+
     console.log(`Migrated ${migrated} records to Firestore`);
-    return { success: true, message: `Migrated ${migrated} records to Firestore` };
+    return {
+      success: true,
+      message: `Migrated ${migrated} records to Firestore`,
+    };
   } catch (error) {
-    console.error('Migration error:', error);
-    return { success: false, message: 'Migration failed: ' + error.message };
+    console.error("Migration error:", error);
+    return { success: false, message: "Migration failed: " + error.message };
   }
 }
 
+/** Get today's record based on phone number
+ *
+ * @param {string} phone
+ * @returns
+ */
 export async function getTodayRecord(phone) {
   try {
     const today = getTodayDateString();
     const docRef = doc(db, ATTENDANCE_COLLECTION, `${phone}_${today}`);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return docSnap.data();
     }
@@ -91,6 +124,11 @@ export async function getTodayRecord(phone) {
   }
 }
 
+/** Check in using phone number
+ *
+ * @param {string} phone
+ * @returns
+ */
 export async function checkIn(phone) {
   try {
     const today = getTodayDateString();
@@ -98,7 +136,7 @@ export async function checkIn(phone) {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists() && docSnap.data().checkIn) {
-      return { success: false, error: 'You have already checked in today' };
+      return { success: false, error: "You have already checked in today" };
     }
 
     const record = {
@@ -112,7 +150,13 @@ export async function checkIn(phone) {
 
     await setDoc(docRef, record);
     // Log audit event
-    await logAuditEvent('check_in', 'employee', phone, { date: today, time: record.checkIn }, phone);
+    await logAuditEvent(
+      "check_in",
+      "employee",
+      phone,
+      { date: today, time: record.checkIn },
+      phone,
+    );
     return { success: true, record };
   } catch (error) {
     return handleError(error);
@@ -126,11 +170,11 @@ export async function checkOut(phone) {
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists() || !docSnap.data().checkIn) {
-      return { success: false, error: 'You must check in before checking out' };
+      return { success: false, error: "You must check in before checking out" };
     }
 
     if (docSnap.data().checkOut) {
-      return { success: false, error: 'You have already checked out today' };
+      return { success: false, error: "You have already checked out today" };
     }
 
     const updated = {
@@ -142,7 +186,13 @@ export async function checkOut(phone) {
 
     await setDoc(docRef, updated);
     // Log audit event
-    await logAuditEvent('check_out', 'employee', phone, { date: today, checkIn: updated.checkIn, checkOut: updated.checkOut }, phone);
+    await logAuditEvent(
+      "check_out",
+      "employee",
+      phone,
+      { date: today, checkIn: updated.checkIn, checkOut: updated.checkOut },
+      phone,
+    );
     return { success: true, record: updated };
   } catch (error) {
     return handleError(error);
@@ -160,10 +210,13 @@ export async function markNotAttending(phone, reasonCategory, notes) {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists() && docSnap.data().checkIn) {
-      return { success: false, error: 'You have already checked in today' };
+      return { success: false, error: "You have already checked in today" };
     }
-    if (docSnap.exists() && docSnap.data().status === 'not_attending') {
-      return { success: false, error: 'You have already marked yourself as not attending today' };
+    if (docSnap.exists() && docSnap.data().status === "not_attending") {
+      return {
+        success: false,
+        error: "You have already marked yourself as not attending today",
+      };
     }
 
     const record = {
@@ -171,14 +224,20 @@ export async function markNotAttending(phone, reasonCategory, notes) {
       date: today,
       checkIn: null,
       checkOut: null,
-      status: 'not_attending',
-      reasonCategory: reasonCategory || 'Other',
-      notes: notes || '',
+      status: "not_attending",
+      reasonCategory: reasonCategory || "Other",
+      notes: notes || "",
       createdAt: new Date().toISOString(),
     };
 
     await setDoc(docRef, record);
-    await logAuditEvent('marked_not_attending', 'employee', phone, { date: today, reasonCategory, notes }, phone);
+    await logAuditEvent(
+      "marked_not_attending",
+      "employee",
+      phone,
+      { date: today, reasonCategory, notes },
+      phone,
+    );
     return { success: true, record };
   } catch (error) {
     return handleError(error);
@@ -199,23 +258,26 @@ export function subscribeToAttendanceRecords(onData, onError) {
       onData(records);
     },
     (error) => {
-      console.error('Attendance snapshot error:', error);
+      console.error("Attendance snapshot error:", error);
       if (onError) onError(error);
-    }
+    },
   );
 }
 
-export async function getDashboardStats(departmentFilter = '') {
+export async function getDashboardStats(departmentFilter = "") {
   const employees = await getAllEmployees();
   const today = getTodayDateString();
   const departmentEmployees = departmentFilter
     ? employees.filter((employee) => employee.department === departmentFilter)
     : employees;
-  
+
   // Query Firestore for today's attendance records
-  const q = query(collection(db, ATTENDANCE_COLLECTION), where('date', '==', today));
+  const q = query(
+    collection(db, ATTENDANCE_COLLECTION),
+    where("date", "==", today),
+  );
   const querySnapshot = await getDocs(q);
-  
+
   const presentPhones = new Set();
   querySnapshot.forEach((doc) => {
     const data = doc.data();
@@ -223,19 +285,30 @@ export async function getDashboardStats(departmentFilter = '') {
       presentPhones.add(data.phone);
     }
   });
-  
+
   const presentDepartmentPhones = departmentFilter
-    ? departmentEmployees.filter((employee) => presentPhones.has(employee.phone)).length
+    ? departmentEmployees.filter((employee) =>
+        presentPhones.has(employee.phone),
+      ).length
     : presentPhones.size;
-  
+
   return {
     totalEmployees: departmentEmployees.length,
     presentToday: presentDepartmentPhones,
-    absentToday: Math.max(0, departmentEmployees.length - presentDepartmentPhones),
+    absentToday: Math.max(
+      0,
+      departmentEmployees.length - presentDepartmentPhones,
+    ),
   };
 }
 
-export async function buildMonthlyAttendanceTable(month, year, searchQuery = '', cutoffTime = DEFAULT_CUTOFF_TIME, departmentFilter = '') {
+export async function buildMonthlyAttendanceTable(
+  month,
+  year,
+  searchQuery = "",
+  cutoffTime = DEFAULT_CUTOFF_TIME,
+  departmentFilter = "",
+) {
   const employees = await getAllEmployees();
   const departmentEmployees = departmentFilter
     ? employees.filter((employee) => employee.department === departmentFilter)
@@ -246,14 +319,14 @@ export async function buildMonthlyAttendanceTable(month, year, searchQuery = '',
   try {
     // Get ALL attendance records from Firestore (no date filter for now)
     const querySnapshot = await getDocs(collection(db, ATTENDANCE_COLLECTION));
-    
+
     const records = [];
     querySnapshot.forEach((doc) => {
       records.push(doc.data());
     });
 
-    console.log('Total attendance records:', records.length);
-    console.log('Employees:', employees.length);
+    console.log("Total attendance records:", records.length);
+    console.log("Employees:", employees.length);
 
     // Create rows for present AND not_attending records
     records.forEach((record) => {
@@ -267,29 +340,29 @@ export async function buildMonthlyAttendanceTable(month, year, searchQuery = '',
           department: emp.department,
           date: record.date,
           checkIn: record.checkIn,
-          checkOut: record.checkOut || '—',
+          checkOut: record.checkOut || "—",
           status: ATTENDANCE_STATUS.PRESENT,
           punctuality: classifyPunctuality(record.checkIn, cutoffTime),
           reasonCategory: null,
           notes: null,
         });
-      } else if (record.status === 'not_attending') {
+      } else if (record.status === "not_attending") {
         rows.push({
           phone: emp.phone,
           employeeName: emp.fullName,
           department: emp.department,
           date: record.date,
-          checkIn: '—',
-          checkOut: '—',
-          status: 'Not Attending',
-          punctuality: 'Absent',
-          reasonCategory: record.reasonCategory || 'Other',
-          notes: record.notes || '',
+          checkIn: "—",
+          checkOut: "—",
+          status: "Not Attending",
+          punctuality: "Absent",
+          reasonCategory: record.reasonCategory || "Other",
+          notes: record.notes || "",
         });
       }
     });
   } catch (error) {
-    console.error('Error building attendance table:', error);
+    console.error("Error building attendance table:", error);
     return [];
   }
 
@@ -303,7 +376,7 @@ export async function buildMonthlyAttendanceTable(month, year, searchQuery = '',
   return sorted.filter(
     (row) =>
       row.employeeName.toLowerCase().includes(searchLower) ||
-      row.phone.includes(searchLower.replace(/\D/g, ''))
+      row.phone.includes(searchLower.replace(/\D/g, "")),
   );
 }
 
@@ -312,18 +385,42 @@ export async function buildMonthlyAttendanceTable(month, year, searchQuery = '',
  * grouped by date — each date gets its own section header and table.
  */
 export function generateAttendanceReport(rows, month, year) {
-  const monthNames = ['January','February','March','April','May','June',
-                      'July','August','September','October','November','December'];
-  const dayNames   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
 
   // Summary stats
-  const onTimeCount = rows.filter(r => classifyPunctuality(r.checkIn, DEFAULT_CUTOFF_TIME) === 'On Time').length;
-  const lateCount   = rows.filter(r => classifyPunctuality(r.checkIn, DEFAULT_CUTOFF_TIME) === 'Late').length;
+  const onTimeCount = rows.filter(
+    (r) => classifyPunctuality(r.checkIn, DEFAULT_CUTOFF_TIME) === "On Time",
+  ).length;
+  const lateCount = rows.filter(
+    (r) => classifyPunctuality(r.checkIn, DEFAULT_CUTOFF_TIME) === "Late",
+  ).length;
 
   // Group rows by date (already sorted date-desc from service; keep that order)
   const groupMap = {};
   const groupOrder = [];
-  rows.forEach(row => {
+  rows.forEach((row) => {
     if (!groupMap[row.date]) {
       groupMap[row.date] = [];
       groupOrder.push(row.date);
@@ -332,7 +429,7 @@ export function generateAttendanceReport(rows, month, year) {
   });
 
   // Build one section per date
-  let dateSections = '';
+  let dateSections = "";
 
   if (rows.length === 0) {
     dateSections = `
@@ -340,12 +437,12 @@ export function generateAttendanceReport(rows, month, year) {
         No attendance records for this period.
       </td></tr>`;
   } else {
-    groupOrder.forEach(date => {
-      const [y, m, d] = date.split('-');
-      const jsDate  = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    groupOrder.forEach((date) => {
+      const [y, m, d] = date.split("-");
+      const jsDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
       const weekday = dayNames[jsDate.getDay()];
-      const label   = `${weekday}, ${parseInt(d)} ${monthNames[parseInt(m) - 1]} ${y}`;
-      const group   = groupMap[date];
+      const label = `${weekday}, ${parseInt(d)} ${monthNames[parseInt(m) - 1]} ${y}`;
+      const group = groupMap[date];
 
       // Date section header row
       dateSections += `
@@ -361,17 +458,20 @@ export function generateAttendanceReport(rows, month, year) {
             ${label}
             <span style="margin-left: 12px; background-color: rgba(255,255,255,0.2);
               padding: 1px 8px; border-radius: 10px; font-size: 9pt; font-weight: 600;">
-              ${group.length} ${group.length === 1 ? 'person' : 'people'}
+              ${group.length} ${group.length === 1 ? "person" : "people"}
             </span>
           </td>
         </tr>`;
 
       // Rows for this date
       group.forEach((row, i) => {
-        const punctuality      = classifyPunctuality(row.checkIn, DEFAULT_CUTOFF_TIME);
-        const rowBg            = i % 2 === 0 ? '#ffffff' : '#f7f7f7';
-        const punctualityColor = punctuality === 'Late' ? '#c05c00' : '#166534';
-        const punctualityBg    = punctuality === 'Late' ? '#fff3cd' : '#d4edda';
+        const punctuality = classifyPunctuality(
+          row.checkIn,
+          DEFAULT_CUTOFF_TIME,
+        );
+        const rowBg = i % 2 === 0 ? "#ffffff" : "#f7f7f7";
+        const punctualityColor = punctuality === "Late" ? "#c05c00" : "#166534";
+        const punctualityBg = punctuality === "Late" ? "#fff3cd" : "#d4edda";
 
         dateSections += `
           <tr style="background-color: ${rowBg};">
@@ -478,12 +578,17 @@ export function generateAttendanceReport(rows, month, year) {
 </body>
 </html>`;
 
-  const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
-  const link = document.createElement('a');
+  const blob = new Blob(["\ufeff", htmlContent], {
+    type: "application/msword",
+  });
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', `attendance_report_${year}_${String(month + 1).padStart(2, '0')}.doc`);
-  link.style.visibility = 'hidden';
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `attendance_report_${year}_${String(month + 1).padStart(2, "0")}.doc`,
+  );
+  link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -493,10 +598,16 @@ export function generateAttendanceReport(rows, month, year) {
 /**
  * Get present records for report (only those who checked in)
  */
-export async function getPresentRecords(month, year, departmentFilter = '') {
-  const tableRows = await buildMonthlyAttendanceTable(month, year, '', DEFAULT_CUTOFF_TIME, departmentFilter);
+export async function getPresentRecords(month, year, departmentFilter = "") {
+  const tableRows = await buildMonthlyAttendanceTable(
+    month,
+    year,
+    "",
+    DEFAULT_CUTOFF_TIME,
+    departmentFilter,
+  );
   // Filter to only show records where attachee checked in (has checkIn time)
-  return tableRows.filter((row) => row.checkIn && row.checkIn !== '—');
+  return tableRows.filter((row) => row.checkIn && row.checkIn !== "—");
 }
 
 /**
@@ -507,22 +618,33 @@ export async function getPresentRecords(month, year, departmentFilter = '') {
  * @param {string} departmentFilter - Optional department filter
  * @returns {Promise<{records: Array, totalPages: number, currentPage: number, totalRecords: number}>}
  */
-export async function getPaginatedAttendanceRecords(page = 1, pageSize = 50, searchQuery = '', departmentFilter = '') {
+export async function getPaginatedAttendanceRecords(
+  page = 1,
+  pageSize = 50,
+  searchQuery = "",
+  departmentFilter = "",
+) {
   try {
     const { month, year } = getCurrentMonthYear();
-    const allRecords = await buildMonthlyAttendanceTable(month, year, searchQuery, DEFAULT_CUTOFF_TIME, departmentFilter);
-    
+    const allRecords = await buildMonthlyAttendanceTable(
+      month,
+      year,
+      searchQuery,
+      DEFAULT_CUTOFF_TIME,
+      departmentFilter,
+    );
+
     const filteredRecords = allRecords;
-    
+
     const totalRecords = filteredRecords.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
     const currentPage = Math.min(page, totalPages || 1);
-    
+
     // Calculate pagination
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
-    
+
     return {
       records: paginatedRecords,
       totalPages,
@@ -539,36 +661,59 @@ export async function getPaginatedAttendanceRecords(page = 1, pageSize = 50, sea
  * Generate a CSV report of attendance records
  */
 export function generateAttendanceCSV(rows, month, year) {
-  const monthNames = ['January','February','March','April','May','June',
-                      'July','August','September','October','November','December'];
-  
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
   // CSV header
-  const headers = ['Date', 'Employee Name', 'Department', 'Check-In', 'Check-Out', 'Status', 'Punctuality'];
-  
+  const headers = [
+    "Date",
+    "Employee Name",
+    "Department",
+    "Check-In",
+    "Check-Out",
+    "Status",
+    "Punctuality",
+  ];
+
   // CSV rows
-  const csvRows = rows.map(row => [
+  const csvRows = rows.map((row) => [
     row.date,
     `"${row.employeeName}"`,
     `"${row.department}"`,
     row.checkIn,
     row.checkOut,
     row.status,
-    classifyPunctuality(row.checkIn, DEFAULT_CUTOFF_TIME)
+    classifyPunctuality(row.checkIn, DEFAULT_CUTOFF_TIME),
   ]);
-  
+
   // Combine header and rows
   const csvContent = [
-    headers.join(','),
-    ...csvRows.map(row => row.join(','))
-  ].join('\n');
-  
+    headers.join(","),
+    ...csvRows.map((row) => row.join(",")),
+  ].join("\n");
+
   // Create and download CSV file
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', `attendance_report_${year}_${String(month + 1).padStart(2, '0')}.csv`);
-  link.style.visibility = 'hidden';
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `attendance_report_${year}_${String(month + 1).padStart(2, "0")}.csv`,
+  );
+  link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
