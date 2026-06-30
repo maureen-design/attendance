@@ -1,6 +1,6 @@
 import { ATTENDANCE_STATUS, DEFAULT_CUTOFF_TIME } from '../data/constants';
 import { formatTime, getTodayDateString, isSameMonth, parseTimeToMinutes, getCurrentMonthYear } from '../utils/dateUtils';
-import { getEmployeeName, getAllEmployees } from './employeeService';
+import { getEmployeeName, getAllEmployees, isEmployeeApproved } from './employeeService';
 import { logAuditEvent } from './auditService';
 import { handleError, withErrorHandling } from '../utils/errorHandler';
 import { db } from '../firebase';
@@ -93,6 +93,12 @@ export async function getTodayRecord(phone) {
 
 export async function checkIn(phone) {
   try {
+    // Check if employee is approved
+    const isApproved = await isEmployeeApproved(phone);
+    if (!isApproved) {
+      return { success: false, error: 'Your registration is pending approval. Please wait for a supervisor to approve your account.' };
+    }
+
     const today = getTodayDateString();
     const docRef = doc(db, ATTENDANCE_COLLECTION, `${phone}_${today}`);
     const docSnap = await getDoc(docRef);
@@ -121,6 +127,12 @@ export async function checkIn(phone) {
 
 export async function checkOut(phone) {
   try {
+    // Check if employee is approved
+    const isApproved = await isEmployeeApproved(phone);
+    if (!isApproved) {
+      return { success: false, error: 'Your registration is pending approval. Please wait for a supervisor to approve your account.' };
+    }
+
     const today = getTodayDateString();
     const docRef = doc(db, ATTENDANCE_COLLECTION, `${phone}_${today}`);
     const docSnap = await getDoc(docRef);

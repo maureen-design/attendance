@@ -115,6 +115,7 @@ export default function EmployeeAttendance() {
   const [identifier, setIdentifier] = useState('');
   const [employee, setEmployee] = useState(null);
   const [todayRecord, setTodayRecord] = useState(null);
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');

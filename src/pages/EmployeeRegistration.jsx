@@ -111,8 +111,8 @@ export default function EmployeeRegistration() {
 
       {success && (
         <Alert type="success" onClose={() => setSuccess(false)}>
-          Registration successful! Your details have been saved. You can now check
-          in using your name or phone number.
+          Registration successful! Your account is pending approval from a supervisor. 
+          You will be able to check in once your registration is approved.
         </Alert>
       )}
 
@@ -188,15 +188,6 @@ export default function EmployeeRegistration() {
             <button type="submit" className="btn btn--primary btn--lg">
               Submit Registration
             </button>
-            {success && (
-              <button
-                type="button"
-                className="btn btn--success btn--lg"
-                onClick={() => navigate('/employee/attendance')}
-              >
-                Go to Attendance
-              </button>
-            )}
           </div>
         </form>
       </div>

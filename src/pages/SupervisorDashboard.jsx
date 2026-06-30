@@ -15,6 +15,7 @@ import {
   getPaginatedAttendanceRecords,
   subscribeToAttendanceRecords,
 } from '../services/attendanceService';
+import { getPendingEmployees, approveEmployee, rejectEmployee } from '../services/employeeService';
 import { changeAdminPassword, sendSupervisorPasswordReset } from '../services/authService';
 import { getCurrentMonthYear, getTodayDateString } from '../utils/dateUtils';
 import { useChangePassword } from '../layouts/MainLayout';
@@ -43,6 +44,8 @@ export default function SupervisorDashboard() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({ totalPages: 1, totalRecords: 0, pageSize: 50 });
+  const [pendingEmployees, setPendingEmployees] = useState([]);
+  const [loadingPending, setLoadingPending] = useState(false);
   const supervisorName = getSessionSupervisorName();
   const { showChangePassword, setShowChangePassword } = useChangePassword();
 
@@ -75,6 +78,22 @@ export default function SupervisorDashboard() {
     return () => unsubscribe();
   }, [month, year, search, departmentFilter, currentPage]);
 
+  // Load pending employees
+  useEffect(() => {
+    const loadPendingEmployees = async () => {
+      setLoadingPending(true);
+      try {
+        const pending = await getPendingEmployees();
+        setPendingEmployees(pending);
+      } catch (error) {
+        console.error('Error loading pending employees:', error);
+      } finally {
+        setLoadingPending(false);
+      }
+    };
+    loadPendingEmployees();
+  }, []);
+
   const presentRows = tableRows.filter((r) => r.status === 'Present');
   
   // Reset to page 1 when search or department filter changes
@@ -106,6 +125,25 @@ export default function SupervisorDashboard() {
     }
   };
 
+  const handleApprove = async (phone) => {
+    const result = await approveEmployee(phone, supervisorName);
+    if (result.success) {
+      // Refresh pending employees list
+      const pending = await getPendingEmployees();
+      setPendingEmployees(pending);
+    }
+  };
+
+  const handleReject = async (phone) => {
+    const reason = prompt('Optional: Enter rejection reason');
+    const result = await rejectEmployee(phone, supervisorName, reason || '');
+    if (result.success) {
+      // Refresh pending employees list
+      const pending = await getPendingEmployees();
+      setPendingEmployees(pending);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner dark label="Loading dashboard..." />;
   }
@@ -133,7 +171,72 @@ export default function SupervisorDashboard() {
           value={stats.presentToday}
           variant="success"
         />
+        <DashboardCard
+          label="Pending Approvals"
+          value={pendingEmployees.length}
+          variant="warning"
+        />
       </div>
+
+      {pendingEmployees.length > 0 && (
+        <section className="table-section" style={{ marginTop: '1.5rem' }}>
+          <div className="table-section__header">
+            <div>
+              <h2>Pending Registrations</h2>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                {pendingEmployees.length} attachee(s) waiting for approval
+              </p>
+            </div>
+          </div>
+          <div style={{ padding: '0 1.5rem 1rem' }}>
+            {loadingPending ? (
+              <LoadingSpinner dark label="Loading pending registrations..." />
+            ) : (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Department</th>
+                    <th>Email</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingEmployees.map((emp) => (
+                    <tr key={emp.phone}>
+                      <td>{emp.fullName}</td>
+                      <td>{emp.phone}</td>
+                      <td>{emp.department}</td>
+                      <td>{emp.email}</td>
+                      <td>{new Date(emp.registeredAt).toLocaleDateString()}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn--success"
+                          style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', marginRight: '0.5rem' }}
+                          onClick={() => handleApprove(emp.phone)}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--danger"
+                          style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}
+                          onClick={() => handleReject(emp.phone)}
+                        >
+                          Reject
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="report-action-bar">
         <div className="report-action-bar__info">

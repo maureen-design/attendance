@@ -2,7 +2,7 @@ import { normalizePhone, looksLikePhone } from '../utils/phoneUtils';
 import { logAuditEvent } from './auditService';
 import { handleError } from '../utils/errorHandler';
 import { db } from '../firebase';
-import { collection, doc, getDoc, getDocs, query, where, setDoc, addDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, setDoc, addDoc, updateDoc } from 'firebase/firestore';
 
 const EMPLOYEES_COLLECTION = 'employees';
 
@@ -65,6 +65,7 @@ export async function registerEmployee(employeeData) {
       department: employeeData.department.trim(),
       email: employeeData.email.trim().toLowerCase(),
       registeredAt: new Date().toISOString(),
+      approvalStatus: 'pending',
     };
 
     // Use phone as document ID for easy lookup
@@ -94,4 +95,88 @@ export async function getAllEmployees() {
 export async function getEmployeeName(phone) {
   const emp = await findEmployeeByPhone(phone);
   return emp?.fullName || 'Unknown';
+}
+
+// ─── Approval workflow functions ─────────────────────────────────────────────
+
+/**
+ * Get all employees with pending approval status
+ */
+export async function getPendingEmployees() {
+  try {
+    const q = query(collection(db, EMPLOYEES_COLLECTION), where('approvalStatus', '==', 'pending'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    throw handleError(error);
+  }
+}
+
+/**
+ * Approve an employee registration
+ * @param {string} phone - Employee phone number (document ID)
+ * @param {string} supervisorName - Name of supervisor approving
+ */
+export async function approveEmployee(phone, supervisorName) {
+  try {
+    const docRef = doc(db, EMPLOYEES_COLLECTION, phone);
+    await updateDoc(docRef, {
+      approvalStatus: 'approved',
+      approvedAt: new Date().toISOString(),
+      approvedBy: supervisorName,
+    });
+    
+    await logAuditEvent('employee_approved', 'employee', phone, {
+      approvedBy: supervisorName,
+    }, phone);
+    
+    return { success: true };
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+/**
+ * Reject an employee registration
+ * @param {string} phone - Employee phone number (document ID)
+ * @param {string} supervisorName - Name of supervisor rejecting
+ * @param {string} reason - Optional rejection reason
+ */
+export async function rejectEmployee(phone, supervisorName, reason = '') {
+  try {
+    const docRef = doc(db, EMPLOYEES_COLLECTION, phone);
+    await updateDoc(docRef, {
+      approvalStatus: 'rejected',
+      rejectedAt: new Date().toISOString(),
+      rejectedBy: supervisorName,
+      rejectionReason: reason,
+    });
+    
+    await logAuditEvent('employee_rejected', 'employee', phone, {
+      rejectedBy: supervisorName,
+      reason,
+    }, phone);
+    
+    return { success: true };
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+/**
+ * Check if an employee is approved (treats missing approvalStatus as approved for grandfathering)
+ * @param {string} phone - Employee phone number
+ */
+export async function isEmployeeApproved(phone) {
+  try {
+    const emp = await findEmployeeByPhone(phone);
+    if (!emp) return false;
+    
+    // If approvalStatus doesn't exist, treat as approved (grandfathering)
+    if (!emp.approvalStatus) return true;
+    
+    return emp.approvalStatus === 'approved';
+  } catch (error) {
+    throw handleError(error);
+  }
 }
